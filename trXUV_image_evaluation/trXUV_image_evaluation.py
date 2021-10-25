@@ -361,12 +361,13 @@ class EvaluateImage:
         self.hf = hf
         self.har_setting = 'EvenOdd'
         scan_list = list(hf.keys())
-        self.scan_list = scan_list
+        self.scan_list = scan_list         # scan list containing all scan no.
         self.data_image = data_im(self)
         self.im_crop = []
         self.im_shear = []
+        self.cache = {}
         self.spectra = {}
-        self.sl = []
+        self.sl = []                   # scan list whose spectra are evaluated.
         self.mask = {}
         self.px_mid_spec = 515
         self.px_mid_ref = 565
@@ -386,7 +387,10 @@ class EvaluateImage:
             im_crop = self.im_crop
         if not im_shear:
             im_shear = self.im_shear
-            
+        for sn in sl:
+            self.cache[sn] = [im_crop, im_shear]
+        self.cache['im_crop'] = im_crop
+        self.cache['im_shear'] = im_shear 
         sd = {}
         for i, sn in enumerate(sl):
             pt_list = list(self.hf[sn].keys())
@@ -405,12 +409,27 @@ class EvaluateImage:
                 self.spectra.update(sd)
         
     def create_data(self, sl):
-        # creating spectra for scans if not already existing
-        list_noSpectra = []
-        if self.sl != sl:
-            list_noSpectra = list(set(sl) - set(self.sl))
-            self.create_specta(list_noSpectra)
-        #self.sl = self.sl + list_noSpectra
+        '''
+        '''
+        # if im_crop and im_shear are updated, create spectra for all the scans
+        if self.sl:
+            if self.cache['im_crop']!=self.im_crop or self.cache['im_shear']!=self.im_shear:
+                self.create_specta(sl)
+            # if im_crop and im_shear are not updated, create spectra for scans whose spectra does not exist
+            else:
+                list_update_spectra = []
+                for sn in sl:
+                    if self.cache[sn] != [self.im_crop, self.im_shear]:
+                        list_update_spectra.append(sn)
+                print(list_update_spectra)
+                self.create_specta(list_update_spectra )
+                
+                # list_noSpectra = []
+                # if self.sl != sl:
+                #     list_noSpectra = list(set(sl) - set(self.sl))
+                #     self.create_specta(list_noSpectra)
+        else:
+            self.create_specta(sl)
         
         # Creating data array for all scans for all harmonics for all motor positons. The array dimension along the
         # scan no direction is concatenated. A x_all is also thus created by concatenating all the x (motor positons)
