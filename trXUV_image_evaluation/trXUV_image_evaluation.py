@@ -411,11 +411,13 @@ class EvaluateImage:
     def create_data(self, sl):
         '''
         '''
-        # if im_crop and im_shear are updated, create spectra for all the scans
+        # if already some spectra created, check if it is necessary to update the spectra
         if self.sl:
+            # if image process parameters are updated, create spectra for all the scans
             if self.cache['im_crop']!=self.im_crop or self.cache['im_shear']!=self.im_shear:
                 self.create_specta(sl)
-            # if im_crop and im_shear are not updated, create spectra for scans whose spectra does not exist
+            # if im_crop and im_shear are not updated, create spectra for scans for which different image process 
+            # parameters were used earlier or if the spectra does not exist for any scan.
             else:
                 list_update_spectra = []
                 for sn in sl:
@@ -425,13 +427,7 @@ class EvaluateImage:
                             list_update_spectra.append(sn)
                     else:
                         list_update_spectra.append(sn)
-                print(list_update_spectra)
                 self.create_specta(list_update_spectra )
-                
-                # list_noSpectra = []
-                # if self.sl != sl:
-                #     list_noSpectra = list(set(sl) - set(self.sl))
-                #     self.create_specta(list_noSpectra)
         else:
             self.create_specta(sl)
         
