@@ -419,7 +419,10 @@ class EvaluateImage:
             else:
                 list_update_spectra = []
                 for sn in sl:
-                    if self.cache[sn] != [self.im_crop, self.im_shear]:
+                    if self.cache[sn]:
+                        if self.cache[sn] != [self.im_crop, self.im_shear]:
+                            list_update_spectra.append(sn)
+                    else:
                         list_update_spectra.append(sn)
                 print(list_update_spectra)
                 self.create_specta(list_update_spectra )
