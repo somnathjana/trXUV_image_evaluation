@@ -421,7 +421,6 @@ class EvaluateImage:
             else:
                 list_update_spectra = []
                 for sn in sl:
-                    #if self.cache.get(sn) != None:
                     if sn in self.cache:
                         if self.cache[sn] != [self.im_crop, self.im_shear]:
                             list_update_spectra.append(sn)
