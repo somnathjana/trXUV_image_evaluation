@@ -359,7 +359,9 @@ class EvaluateImage:
         self.fileName = fileName
         hf = h5py.File(path+fileName, 'r')
         self.hf = hf
-        self.har_setting = 'EvenOdd'
+        self.har_setting = 'Odd'
+        n_Har = 9 if self.har_setting=='Odd' else 17
+        self.n_Har = n_Har
         scan_list = list(hf.keys())
         self.scan_list = scan_list         # scan list containing all scan no.
         self.data_image = data_im(self)
@@ -385,8 +387,13 @@ class EvaluateImage:
         self.sl = list(set(self.sl).union(set(sl)))
         if not im_crop:
             im_crop = self.im_crop
+        else:
+            self.im_crop = im_crop
         if not im_shear:
             im_shear = self.im_shear
+        else:
+            self.im_shear = im_shear
+        # cache im_crop and im_shear for each scan
         for sn in sl:
             self.cache[sn] = [im_crop, im_shear]
         self.cache['im_crop'] = im_crop
@@ -434,7 +441,8 @@ class EvaluateImage:
         # scan no direction is concatenated. A x_all is also thus created by concatenating all the x (motor positons)
         # for all the scans.
         
-        n_Har = 17 if self.har_setting=='EvenOdd' else 9
+        #n_Har = 17 if self.har_setting=='EvenOdd' else 9
+        n_Har = self.n_Har
         x = np.array([])
         x_all = np.array([])
         x_dict = {}
@@ -505,7 +513,7 @@ class EvaluateImage:
         n_pt3 = len([el for el in pt_list_all if '.ref' in el and 'M' in el])        
         n_pt = min(n_pt0, n_pt1, n_pt2, n_pt3)
         #n_pt = len([el for el in pt_list_all if '.spec' in el and 'M' not in el])
-        n_Har = 17
+        n_Har = self.n_Har
         Data_arr = np.zeros((4, n_scan, n_Har, n_pt))
         key_list = [[],[],[],[]] 
         for i, sn in enumerate(sl):
