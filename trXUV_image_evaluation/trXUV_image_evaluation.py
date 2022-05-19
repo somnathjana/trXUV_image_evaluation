@@ -95,10 +95,10 @@ def ImageToHDF5(root, fileName, h5FilePath='', h5FileName='', pathToSave=None):
 def data_im(self):
     dd = {}
     for i, sn in enumerate(self.scan_list):
-        pt_list = list(self.hf[sn].keys())
+        pt_list = list(self.data_file[sn].keys())
         dd[sn] = {}
         for j, pn in enumerate(pt_list):
-            dd[sn][pn] = self.hf[sn][pn]
+            dd[sn][pn] = self.data_file[sn][pn]
     return dd
 
 def crop_image(self, im_crop, sn, pn):
@@ -106,9 +106,9 @@ def crop_image(self, im_crop, sn, pn):
         #self.px_mid_spec = self.px_mid_spec-im_crop[0][2]
         #self.px_mid_ref = self.px_mid_ref-im_crop[1][2]
         if '.spec' in pn:   
-            return self.hf[sn][pn][()][im_crop[0][0]:im_crop[0][1], im_crop[0][2]:im_crop[0][3]]
+            return self.data_file[sn][pn][()][im_crop[0][0]:im_crop[0][1], im_crop[0][2]:im_crop[0][3]]
         else:
-            return self.hf[sn][pn][()][im_crop[1][0]:im_crop[1][1], im_crop[1][2]:im_crop[1][3]]
+            return self.data_file[sn][pn][()][im_crop[1][0]:im_crop[1][1], im_crop[1][2]:im_crop[1][3]]
         
 def process_image(self, im_crop, im_shear, sn, pn):
         assert len(im_crop)==2, "im_crop must contain 2 or no lists."
@@ -121,7 +121,7 @@ def process_image(self, im_crop, im_shear, sn, pn):
         
 def rotate_image(self, im_rot, sn, pn):
         assert len(im_rot)==2, "im_rot must contain 2 or no elements."
-        image = self.hf[sn][pn][()]
+        image = self.data_file[sn][pn][()]
         if '.spec' in pn:
             return rotate(image, angle=im_rot[0])
         else:
@@ -138,7 +138,7 @@ def im_vshear(image, shear):
         
 def shear_image(self, im_shear, sn, pn):
         assert len(im_shear)==2, "im_shear must contain 2 or no elements."
-        image = self.hf[sn][pn][()]
+        image = self.data_file[sn][pn][()]
         if '.spec' in pn:
             shear =im_shear[0]
             return im_vshear(image, shear)
@@ -149,8 +149,12 @@ def shear_image(self, im_shear, sn, pn):
 def FindPeaks(self, spectra, rel_height):
     height = np.max(spectra)/20
     px_mid = self.px_mid_spec
-    peaks1 = find_peaks(spectra[:px_mid], height=height, distance=35, prominence=height/2)
-    peaks2 = find_peaks(spectra[px_mid:], height=height, distance=25, prominence=height/2)
+    n_peaks = 0
+    while n_peaks < self.n_Har:
+        height = height*0.9
+        peaks1 = find_peaks(spectra[:px_mid], height=height, distance=35, prominence=height/2)
+        peaks2 = find_peaks(spectra[px_mid:], height=height, distance=25, prominence=height/2)
+        n_peaks = len(peaks1[0]) + len(peaks2[0])
     peaks = np.concatenate((peaks1[0], peaks2[0]+(np.ones_like(peaks2[0])*px_mid).astype(int)))
     peak_heights = np.concatenate((peaks1[1]['peak_heights'], peaks2[1]['peak_heights']))
     PeakWidths = peak_widths(spectra, peaks, rel_height=rel_height)
@@ -348,6 +352,36 @@ def plot_seq(self, seq, kwargs, har_list=None, bins=None):
     ax.set_xlabel(self.motor)
     ax.set_ylabel('Asymmetry')
     plt.show()
+
+def plot_image(self, sn=1, pn=1, MagDir=True, hline=([],[])):
+    if MagDir:
+        image_spec = self.data_image[str(sn)][str(pn).zfill(4)+'.spec']
+        image_ref = self.data_image[str(sn)][str(pn).zfill(4)+'.ref'] 
+    else:
+        image_spec = self.data_image[str(sn)]['M'+str(pn).zfill(4)+'.spec']
+        image_ref = self.data_image[str(sn)]['M'+str(pn).zfill(4)+'.ref'] 
+    fig = plt.figure()
+    sortValue = np.sort(image_spec, axis=None)
+    n =len(sortValue)
+    minVal = sortValue[int(n*0.2)]
+    maxVal = sortValue[int(n*0.997)]   
+    fig.add_subplot(2, 1, 1)
+    plt.imshow(image_spec, vmin=minVal, vmax=maxVal)
+    if hline:
+        plt.axhline(hline[0][0])
+        plt.axhline(hline[0][1])
+    sortValue = np.sort(image_ref, axis=None)
+    n =len(sortValue)
+    minVal = sortValue[int(n*0.2)]
+    maxVal = sortValue[int(n*0.997)]
+    fig.add_subplot(2, 1, 2)
+    plt.imshow(image_ref, vmin=minVal, vmax=maxVal)
+    if hline:
+        plt.axhline(hline[1][0])
+        plt.axhline(hline[1][1])
+    plt.show()
+
+
 #------------------------------------------------------------------------------
 # The class EvaluateImage
 #------------------------------------------------------------------------------
@@ -358,7 +392,7 @@ class EvaluateImage:
         self.path = path
         self.fileName = fileName
         hf = h5py.File(path+fileName, 'r')
-        self.hf = hf
+        self.data_file = hf
         self.har_setting = 'Odd'
         n_Har = 9 if self.har_setting=='Odd' else 17
         self.n_Har = n_Har
@@ -400,11 +434,11 @@ class EvaluateImage:
         self.cache['im_shear'] = im_shear 
         sd = {}
         for i, sn in enumerate(sl):
-            pt_list = list(self.hf[sn].keys())
+            pt_list = list(self.data_file[sn].keys())
             sd[sn] = {}
             for j, pn in enumerate(pt_list):
                 if not im_crop and not im_shear:
-                    image = self.hf[sn][pn][()]
+                    image = self.data_file[sn][pn][()]
                 if im_crop and not im_shear:
                     image = crop_image(self, im_crop, sn, pn)
                 if im_crop and im_shear:
@@ -465,7 +499,7 @@ class EvaluateImage:
             
             # create x and x_all. x contains the longest x among all the scans in the scan list. 
             # x_all contains xs (concatenated) of all the scans. 
-            x_dict[i] = self.hf[sn].attrs[self.motor][pt_list]
+            x_dict[i] = self.data_file[sn].attrs[self.motor][pt_list]
             if len(x_dict[i])>len(x):
                 x = x_dict[i]
             x_all = np.concatenate((x_all, x_dict[i]))
@@ -540,4 +574,4 @@ class EvaluateImage:
         self.data_all = Data_arr
         
     def close(self):
-        self.hf.close()
+        self.data_file.close()
