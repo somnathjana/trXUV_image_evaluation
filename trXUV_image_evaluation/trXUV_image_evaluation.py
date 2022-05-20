@@ -105,7 +105,7 @@ def crop_image(self, im_crop, sn, pn):
         assert len(im_crop)==2, "im_crop must contain 2 or no lists."
         #self.px_mid_spec = self.px_mid_spec-im_crop[0][2]
         #self.px_mid_ref = self.px_mid_ref-im_crop[1][2]
-        if '.spec' in pn:   
+        if '.spec' in pn:
             return self.data_file[sn][pn][()][im_crop[0][0]:im_crop[0][1], im_crop[0][2]:im_crop[0][3]]
         else:
             return self.data_file[sn][pn][()][im_crop[1][0]:im_crop[1][1], im_crop[1][2]:im_crop[1][3]]
@@ -145,6 +145,16 @@ def shear_image(self, im_shear, sn, pn):
         else:
             shear =im_shear[1]
             return im_vshear(image, shear)
+
+def cal_background(self, im_crop, sn, pn):
+    s1, s2, s3, s4 = im_crop[0][0], im_crop[0][1], im_crop[0][2], im_crop[0][3]
+    r1, r2, r3, r4 = im_crop[1][0], im_crop[1][1], im_crop[1][2], im_crop[1][3]
+    if '.spec' in pn:
+        image = self.data_file[sn][pn][()]
+        return (image[:s1,s3:s4].sum(axis=0) + image[s2:,s3:s4].sum(axis=0))/(255+s1-s2)
+    if '.ref' in pn:
+        image = self.data_file[sn][pn][()]
+        return (image[:r1,r3:r4].sum(axis=0) + image[r2:,r3:r4].sum(axis=0))/(255+r1-r2)
         
 def FindPeaks(self, spectra, rel_height):
     height = np.max(spectra)/20
@@ -415,7 +425,7 @@ class EvaluateImage:
         self.x_all = np.array([])
         self.x = np.array([])
         
-    def create_specta(self, sl, im_crop=[], im_shear=[]):
+    def create_specta(self, sl, im_crop=[], im_shear=[], correct_bg=False):
         '''
         '''
         self.sl = list(set(self.sl).union(set(sl)))
@@ -445,6 +455,9 @@ class EvaluateImage:
                     image = process_image(self, im_crop, im_shear, sn, pn)
                 if not im_crop and im_shear:
                     image = shear_image(self, im_crop, im_shear, sn, pn)  
+                if correct_bg:
+                    bg = cal_background(self, im_crop, sn, pn)
+                    image = image - bg
                     
                 sd[sn][pn] = image.sum(axis=0)
                 self.spectra.update(sd)
