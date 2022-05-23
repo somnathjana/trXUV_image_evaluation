@@ -278,6 +278,7 @@ def cal_asym(self, sl, har_list=None, bins=None):
         if self.har_setting == 'EvenOdd':
             har_list = [el for el in range(17)]
     self.har_list = har_list
+    self.n_Har = len(har_list)
     self.create_data(sl)                         # creates self.data_conc
     data2plot = self.data_conc[:, har_list, :]
     bin_data(self, data2plot, bins)              # creates self.xmean, self.ymean etc.
@@ -493,6 +494,10 @@ class EvaluateImage:
         x = np.array([])
         x_all = np.array([])
         x_dict = {}
+        # spec_dict = {}
+        # ref_dict = {}
+        # rel_dict = {}
+        asym_dict = {}
         key_list = [[],[],[],[]] 
         for i, sn in enumerate(sl):
             all_keys = list(self.spectra[sn].keys())
@@ -519,6 +524,10 @@ class EvaluateImage:
             # Create the data array
             n_p = len(pt_list)
             spectra_all = np.zeros((4, n_Har, n_p))
+            # spec = np.zeros((n_Har, n_p))
+            # ref = np.zeros((n_Har, n_p))
+            # rel = np.zeros((n_Har, n_p))
+            asym = np.zeros((n_Har, n_p))
             for j, pn in enumerate(pt_list):
                 spec = self.spectra[sn][key_list[0][pn]]
                 specM = self.spectra[sn][key_list[1][pn]]
@@ -530,16 +539,21 @@ class EvaluateImage:
                     spectra_all[1, k, j] = np.sum(specM[int(mask['spec'][0][k]):int(mask['spec'][1][k])])
                     spectra_all[2, k, j] = np.sum(ref[int(mask['ref'][0][k]):int(mask['ref'][1][k])])
                     spectra_all[3, k, j] = np.sum(refM[int(mask['ref'][0][k]):int(mask['ref'][1][k])])
+                    rel = spectra_all[0, k, j] / spectra_all[2, k, j]
+                    relM = spectra_all[1, k, j] / spectra_all[3, k, j]
+                    asym[k, j] = (rel - relM)/(rel + relM)
             if i==0:
                 spectra_conc = spectra_all
             else:
                 spectra_conc = np.concatenate((spectra_conc, spectra_all), axis=2)
+            asym_dict[i] = asym
         self.x = x
         self.x_dict = x_dict
         self.x_all = x_all
         self.data_conc = spectra_conc
+        self.asym_dict = asym_dict
             
-    def data_arr(self, sl):             # Works only for same x axis for all scans in sl. Currently not in use
+    def data_arr(self, sl):             # Works only for same x axis for all scans in scan list. Currently not in use
         '''
         '''
         list_noSpectra = []
