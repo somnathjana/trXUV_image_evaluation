@@ -280,13 +280,19 @@ def cal_asym(self, sl, har_list=None, bins=None):
     self.har_list = har_list
     self.n_Har = len(har_list)
     self.create_data(sl)                         # creates self.data_conc
-    data2plot = self.data_conc[:, har_list, :]
-    bin_data(self, data2plot, bins)              # creates self.xmean, self.ymean etc.
-    data_mean = self.ymean
-    Ip = data_mean[0]/data_mean[2]
-    Im = data_mean[1]/data_mean[3]
-    asym = -(Ip - Im)/(Ip + Im)     # negative sign used to match the sign of asymmetry
-    self.asym = asym
+    Ip_all = self.data_conc[0,:,:]/self.data_conc[2,:,:]
+    Im_all = self.data_conc[1,:,:]/self.data_conc[3,:,:]
+    asym_all = -(Ip_all - Im_all)/(Ip_all + Im_all)
+    bin_data(self, asym_all[har_list,:], bins)
+    self.asym = self.ymean
+    
+    # data2plot = self.data_conc[:, har_list, :]
+    # bin_data(self, data2plot, bins)              # creates self.xmean, self.ymean etc.
+    # data_mean = self.ymean
+    # Ip = data_mean[0]/data_mean[2]
+    # Im = data_mean[1]/data_mean[3]
+    # asym = -(Ip - Im)/(Ip + Im)     # negative sign used to match the sign of asymmetry
+    # self.asym = asym
 
 def plot_asym(self, sl, har_list, bins=None, normalized=False):
     cal_asym(self, sl, har_list, bins)
